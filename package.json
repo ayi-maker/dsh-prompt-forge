@@ -1,0 +1,76 @@
+{
+  "name": "dsh-prompt-forge",
+  "version": "1.0.0",
+  "description": "Prompt Forge / 提示词锻造台：把模糊想法通过多轮带选项的反问，锻造成完整、可靠、高效的提示词。",
+  "license": "MIT",
+  "author": {
+    "name": "ayi",
+    "url": "https://github.com/ayi-maker"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayi-maker/dsh-prompt-forge.git"
+  },
+  "homepage": "https://github.com/ayi-maker/dsh-prompt-forge#readme",
+  "bugs": {
+    "url": "https://github.com/ayi-maker/dsh-prompt-forge/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "prompt",
+    "prompt-engineering",
+    "prompt-forge",
+    "ui"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0"
+  },
+  "type": "module",
+  "main": "index.js",
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "slots.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "WHY-THESE-SLOTS.md",
+    "LICENSE",
+    "test/*.mjs"
+  ],
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "scripts": {
+    "test": "node test/host.test.mjs && node test/client.test.mjs",
+    "test:host": "node test/host.test.mjs",
+    "test:client": "node test/client.test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-connection"
+      ]
+    }
+  }
+}

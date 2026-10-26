@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Prompt Forge">
+  <defs>
+    <linearGradient id="pf-forge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f8cff"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#pf-forge)" opacity="0.16"/>
+  <path d="M15 47l7.6-2.1 21.6-21.6a4.1 4.1 0 0 0-5.8-5.8L16.8 39.1 15 47z"
+        fill="none" stroke="url(#pf-forge)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M35.2 21.1l6.1 6.1" fill="none" stroke="url(#pf-forge)" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="47" cy="46" r="2.6" fill="url(#pf-forge)"/>
+  <circle cx="39.5" cy="50.5" r="1.7" fill="url(#pf-forge)" opacity="0.75"/>
+</svg>
