@@ -272,6 +272,24 @@ function findForSession(store, sessionId) {
   return undefined
 }
 
+/**
+ * A very coarse "is this a question, not a task" detector. `/prompt` is a forge
+ * entry point, but users also type `/prompt 好用吗` meaning "is it good?" —
+ * starting a forge from a question is absurd. When the input looks like a
+ * question, hand it straight to the model instead of opening the forge.
+ */
+function looksLikeQuestion(text) {
+  const t = text.trim()
+  if (t.length === 0) return false
+  if (/[？?]$/.test(t)) return true
+  const questionWords =
+    /^(什么|为什么|为何|怎么|怎样|如何|哪些|哪个|哪里|是否|能不能|可不可以|可以吗|行吗|好用吗|对吗|多少|几点|什么时候|为什么|干嘛)/
+  if (questionWords.test(t)) return true
+  const questionParticles = /(吗|么|呢)[？?]?\s*$/
+  if (questionParticles.test(t)) return true
+  return false
+}
+
 /** Resolve `id` when given, else the newest record of this session. */
 function pick(store, id, sessionId) {
   if (typeof id === 'string' && id.length > 0) return store.records[id]
@@ -800,6 +818,27 @@ export function apply(ctx, config) {
           const agent = invocation?.agent
           const raw = typeof invocation?.rawInput === 'string' ? invocation.rawInput.trim() : ''
           try {
+            // A question is not a forge idea. Hand it to the model verbatim so it
+            // answers normally instead of opening a meaningless 0/100 record.
+            if (raw.length > 0 && looksLikeQuestion(raw) && agent !== undefined && typeof agent.followup === 'function') {
+              let questionMessage
+              try {
+                const { createUserMessage } = await import('@deepseek-ai/dsh-llm')
+                questionMessage = createUserMessage({
+                  content: [{ type: 'text', text: raw }],
+                  source: { kind: 'user' },
+                })
+              } catch {
+                questionMessage = { role: 'user', content: [{ type: 'text', text: raw }], source: { kind: 'user' } }
+              }
+              try {
+                agent.followup(questionMessage)
+                return { kind: 'success', text: '这不是一个要锻造的想法，我已直接回答。' }
+              } catch {
+                /* fall through to forge path */
+              }
+            }
+
             const store = await loadStore(config)
             let record = findForSession(store, sessionId)
             if (raw.length > 0) {

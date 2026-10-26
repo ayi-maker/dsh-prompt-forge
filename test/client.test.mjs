@@ -194,4 +194,10 @@ await test('the dock bar can be dismissed', () => {
   assert.ok(source.includes('action.dismiss'), 'dismiss button must be localized')
 })
 
+await test('the panel loads on mount, not only when the dock pulls', () => {
+  // Regression guard: the root-scoped panel cannot wait for the dock to fetch.
+  // It must call refreshForge in its own effect on mount.
+  assert.ok(source.includes('reload()'), 'panel must trigger a reload on mount')
+})
+
 console.log('\nall client tests passed')

@@ -463,6 +463,13 @@ window.__ModuleLoader__.load({
         void refreshForge(connection, sessionId)
       }, [connection, sessionId])
 
+      // The panel is root-scoped and cannot subscribe to the session projection
+      // the way the dock does, but it must still load on mount — otherwise the
+      // sidebar opens onto an empty panel whenever the dock has not pulled yet.
+      useEffect(() => {
+        reload()
+      }, [reload])
+
       useEffect(() => {
         if (pinnedId === null || connection === undefined || connection === null) {
           setPinned(null)

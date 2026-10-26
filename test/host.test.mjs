@@ -267,4 +267,27 @@ await test('/prompt falls back to text when the agent cannot be woken', async ()
   assert.match(result.text, /完整度|还差的要素|开始提问/)
 })
 
+// A question is not a forge idea: `/prompt 好用吗` must not open a record.
+await test('/prompt treats a question as a question, not a task', async () => {
+  const command = captured.commands.find((entry) => entry.name === 'prompt')
+  const followedUp = []
+  const result = await command.handler({
+    agent: { id: 'session-question', followup(message) { followedUp.push(message) } },
+    rawInput: '这个插件好用吗？',
+  })
+  assert.equal(result.kind, 'success')
+  assert.equal(followedUp.length, 1, 'a question must be handed to the model verbatim')
+  const text = followedUp[0].content?.[0]?.text ?? ''
+  assert.match(text, /这个插件好用吗/, 'the question must pass through unchanged')
+  assert.ok(!/ask_user_question/.test(text), 'a question must not start the interview')
+})
+
+await test('/prompt treats a 吗-particle as a question', async () => {
+  const command = captured.commands.find((entry) => entry.name === 'prompt')
+  const q = []
+  const r1 = await command.handler({ agent: { id: 's-a', followup(m) { q.push(m.content[0].text) } }, rawInput: '好用吗' })
+  assert.equal(r1.kind, 'success')
+  assert.ok(!/ask_user_question/.test(q[q.length - 1]), '好用吗 must be treated as a question')
+})
+
 console.log('\nall host tests passed')
