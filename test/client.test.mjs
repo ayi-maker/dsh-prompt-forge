@@ -34,6 +34,10 @@ const sandbox = {
         loaded = entry
       },
     },
+    localStorage: {
+      getItem: () => null,
+      setItem: () => {},
+    },
   },
   document: {
     createElement: () => ({ style: {}, dataset: {}, setAttribute() {}, appendChild() {}, remove() {} }),
@@ -179,6 +183,15 @@ await test('the panel and dock share one forge store', () => {
   // One refresh path, not two independent pollers.
   const count = (source.match(/refreshForge\(/g) ?? []).length
   assert.ok(count >= 2, 'dock and panel must both call refreshForge')
+})
+
+await test('the dock bar can be dismissed', () => {
+  // The progress bar must render a close button, and dismissal must stick via
+  // localStorage so a closed bar stays closed until a new record appears.
+  assert.ok(source.includes('pf-dock-close'), 'dock must have a close button')
+  assert.ok(source.includes('dismiss'), 'dock must implement dismissal')
+  assert.ok(source.includes('localStorage'), 'dismissal must persist in localStorage')
+  assert.ok(source.includes('action.dismiss'), 'dismiss button must be localized')
 })
 
 console.log('\nall client tests passed')

@@ -35,6 +35,8 @@ window.__ModuleLoader__.load({
       'action.delete': '删除',
       'action.open': '展开',
       'action.back': '回到对话',
+      'action.dismiss': '关闭进度条',
+      'action.dismiss.title': '关闭这条进度提示',
       'slot.missing': '待确认',
       'gaps.hint': '这些问题由助手在对话里问你；你也可以直接在对话里补充。',
       'history.empty': '暂无历史记录。',
@@ -72,6 +74,8 @@ window.__ModuleLoader__.load({
       'action.delete': 'Delete',
       'action.open': 'Open',
       'action.back': 'Back to chat',
+      'action.dismiss': 'Dismiss bar',
+      'action.dismiss.title': 'Dismiss this progress bar',
       'slot.missing': 'Pending',
       'gaps.hint': 'The assistant asks these in the chat; you can also answer them right there.',
       'history.empty': 'No history yet.',
@@ -139,6 +143,8 @@ window.__ModuleLoader__.load({
 .pf-dock-preview{color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .pf-dock-bar{position:relative;width:64px;height:5px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);overflow:hidden;flex:none}
 .pf-dock-fill{position:absolute;inset:0 auto 0 0;background:var(--dsw-alias-brand-primary);border-radius:999px}
+.pf-dock-close{appearance:none;border:none;background:none;color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;font-size:12px;line-height:1;padding:4px;border-radius:5px;flex:none;display:inline-flex;align-items:center;justify-content:center}
+.pf-dock-close:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .pf-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 `
 
@@ -552,8 +558,41 @@ window.__ModuleLoader__.load({
       }, [connection, sessionId, tick])
 
       const record = data.active
-      // Stay out of the composer until this session actually owns a forge.
-      if (record === null || record === undefined) return null
+      // Remember which record this session dismissed, so closing the bar sticks
+      // across re-renders (and reloads) until a NEW record appears.
+      const dismissKey = `dsh-prompt-forge:dismissed:${typeof sessionId === 'string' ? sessionId : ''}`
+      const [dismissedId, setDismissedId] = useState(() => {
+        try {
+          return window.localStorage.getItem(dismissKey) ?? ''
+        } catch {
+          return ''
+        }
+      })
+
+      // The dock is session-scoped but React keeps its state when the session
+      // changes; re-read the dismissed marker whenever the session id moves.
+      useEffect(() => {
+        try {
+          setDismissedId(window.localStorage.getItem(dismissKey) ?? '')
+        } catch {
+          setDismissedId('')
+        }
+      }, [dismissKey])
+
+      // Stay out of the composer unless this session owns a forge we haven't
+      // dismissed yet.
+      if (record === null || record === undefined || (record.id === dismissedId && dismissedId !== '')) return null
+
+      const dismiss = () => {
+        const id = record.id ?? ''
+        setDismissedId(id)
+        try {
+          window.localStorage.setItem(dismissKey, id)
+        } catch {
+          /* storage unavailable */
+        }
+      }
+
       const score = typeof record.score === 'number' ? Math.max(0, Math.min(100, record.score)) : 0
       const preview =
         record.status === 'final'
@@ -572,6 +611,11 @@ window.__ModuleLoader__.load({
         ),
         h('span', { className: 'pf-dock-bar', 'aria-hidden': true }, h('span', { className: 'pf-dock-fill', style: { width: score + '%' } })),
         h('button', { type: 'button', className: 'pf-btn small', onClick: onOpen }, `${score}%`),
+        h(
+          'button',
+          { type: 'button', className: 'pf-dock-close', onClick: dismiss, title: t('action.dismiss.title'), 'aria-label': t('action.dismiss') },
+          '×',
+        ),
       )
     }
 
