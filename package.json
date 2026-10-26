@@ -54,6 +54,14 @@
   "dependencies": {
     "zod": "4.4.3"
   },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": "*"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    }
+  },
   "scripts": {
     "test": "node test/host.test.mjs && node test/client.test.mjs",
     "test:host": "node test/host.test.mjs",

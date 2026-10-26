@@ -233,4 +233,38 @@ await test('projection wire view exposes the tick', () => {
   assert.deepEqual(projection.wire.view({ tick: 3 }), { tick: 3 })
 })
 
+// The `/prompt` command must not stop at "record created, 0/100". It has to
+// hand the idea back to the model and wake the driver.
+await test('/prompt wakes the agent to continue the interview', async () => {
+  const command = captured.commands.find((entry) => entry.name === 'prompt')
+  assert.ok(command, '/prompt command must be registered')
+
+  const followedUp = []
+  const invocation = {
+    agent: {
+      id: 'session-command-test',
+      followup(message) {
+        followedUp.push(message)
+      },
+    },
+    rawInput: '把周报写得更像人话',
+  }
+  const result = await command.handler(invocation)
+  assert.equal(result.kind, 'success')
+  assert.equal(followedUp.length, 1, 'agent.followup must be called exactly once')
+
+  const message = followedUp[0]
+  const text = message.content?.[0]?.text ?? ''
+  assert.match(text, /把周报写得更像人话/, 'the idea must be carried into the followup')
+  assert.match(text, /ask_user_question/, 'the followup must instruct the model to ask questions')
+  assert.match(text, /prompt_forge/, 'the followup must reference the update tool')
+})
+
+await test('/prompt falls back to text when the agent cannot be woken', async () => {
+  const command = captured.commands.find((entry) => entry.name === 'prompt')
+  const result = await command.handler({ agent: { id: 'session-no-followup' }, rawInput: '写周报' })
+  assert.equal(result.kind, 'success')
+  assert.match(result.text, /完整度|还差的要素|开始提问/)
+})
+
 console.log('\nall host tests passed')

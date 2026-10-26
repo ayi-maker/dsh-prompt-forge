@@ -797,6 +797,7 @@ export function apply(ctx, config) {
         input: { hint: '可选：一句话描述你的想法' },
         handler: async (invocation) => {
           const sessionId = invocation?.agent?.id
+          const agent = invocation?.agent
           const raw = typeof invocation?.rawInput === 'string' ? invocation.rawInput.trim() : ''
           try {
             const store = await loadStore(config)
@@ -826,6 +827,38 @@ export function apply(ctx, config) {
             }
             const wire = toWire(record)
             const gaps = wire.gaps.slice(0, 4).map((gap) => `· ${gap.label}：${gap.question}`).join('\n')
+
+            // The command itself cannot run the interview — it can only hand the
+            // idea back to the model as a user message and wake the driver. Without
+            // this, `/prompt` created a record and stopped at 0/100 forever.
+            if (agent !== undefined && typeof agent.followup === 'function') {
+              const brief = record.brief.length > 0 ? record.brief : raw
+              const kickoff =
+                `【提示词锻造】请继续推进这条锻造记录（id ${record.id}）。\n\n` +
+                `用户的想法：${brief}\n\n` +
+                `现在立刻执行：先加载 prompt-forge 技能，然后用 ask_user_question 问第一轮（3-5 个问题，` +
+                `每个都给 2-4 个具体选项），优先问这些缺口：\n${gaps}\n\n` +
+                `问完一轮后调用 prompt_forge（action "update"）把用户确认的决定落盘，再继续下一轮，直到 readyToFinalize 后 finalize。`
+              let followupMessage
+              try {
+                const { createUserMessage } = await import('@deepseek-ai/dsh-llm')
+                followupMessage = createUserMessage({
+                  content: [{ type: 'text', text: kickoff }],
+                  source: { kind: 'user' },
+                })
+              } catch {
+                // dsh-llm unavailable: fall back to a plain object the driver may
+                // still accept, and if not, the followup is simply skipped.
+                followupMessage = { role: 'user', content: [{ type: 'text', text: kickoff }], source: { kind: 'user' } }
+              }
+              try {
+                agent.followup(followupMessage)
+                return { kind: 'success', text: '已开始锻造，我会马上反问。' }
+              } catch {
+                /* fall through to the text-only reply */
+              }
+            }
+
             return {
               kind: 'success',
               text: `提示词锻造：${wire.title}（完整度 ${wire.score}/100）\n还差的要素：\n${gaps}\n\n把想法补充给我，或直接说"开始提问"。`,
